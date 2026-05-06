@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analizador de capacidad de crédito</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ffffff; --bg2: #f6f6f4; --bg3: #eeede9;
+    --border: rgba(0,0,0,0.11); --border2: rgba(0,0,0,0.20);
+    --text: #1a1a18; --text2: #5a5a56; --text3: #9a9a94;
+    --blue-bg: #e6f1fb; --blue-border: rgba(24,95,165,0.28); --blue-text: #0c447c;
+    --green-bg: #eaf3de; --green-border: rgba(59,109,17,0.28); --green-text: #27500a;
+    --amber-bg: #faeeda; --amber-border: rgba(133,79,11,0.28); --amber-text: #633806;
+    --red-bg: #fcebeb; --red-border: rgba(163,45,45,0.28); --red-text: #791f1f;
+    --radius: 8px; --radius-lg: 12px;
+    --good: #1D9E75; --ok: #BA7517; --bad: #E24B4A;
+  }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 14px; color: var(--text); background: var(--bg3); min-height: 100vh; padding: 24px 20px; }
+  .wrap { max-width: 940px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 600; margin-bottom: 3px; }
+  .subtitle { font-size: 13px; color: var(--text2); margin-bottom: 20px; }
+
+  .card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 16px 18px; margin-bottom: 10px; }
+  .sec-label { font-size: 10px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .07em; display: block; margin-bottom: 12px; }
+  .divider { border-top: 0.5px solid var(--border); margin: 14px 0; }
+
+  label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 4px; }
+  .hint { font-size: 11px; color: var(--text3); margin-top: 3px; }
+  input, select, textarea {
+    width: 100%; border: 0.5px solid var(--border2); border-radius: var(--radius);
+    background: var(--bg); color: var(--text); font-size: 13px;
+    padding: 0 10px; font-family: inherit; outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input, select { height: 34px; }
+  textarea { padding: 8px 10px; resize: vertical; min-height: 86px; line-height: 1.55; }
+  input:focus, select:focus, textarea:focus { border-color: #378add; box-shadow: 0 0 0 2px rgba(55,138,221,.14); }
+  input.mono { font-family: 'Courier New', monospace; }
+  .field { margin-bottom: 10px; }
+  .field:last-child { margin-bottom: 0; }
+
+  .income-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+
+  .types-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+  .type-btn { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 10px 10px 9px; cursor: pointer; text-align: left; font-family: inherit; width: 100%; transition: border .12s, background .12s; }
+  .type-btn:hover { border-color: var(--border2); background: var(--bg); }
+  .type-btn.active { background: var(--blue-bg); border: 1px solid var(--blue-border); }
+  .tbadge { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; font-size: 9px; font-weight: 700; font-family: 'Courier New', monospace; background: var(--bg3); color: var(--text2); margin-bottom: 6px; }
+  .type-btn.active .tbadge { background: var(--bg); color: var(--blue-text); }
+  .tname { font-size: 13px; font-weight: 600; color: var(--text); display: block; margin-bottom: 2px; }
+  .type-btn.active .tname { color: var(--blue-text); }
+  .tdesc { font-size: 11px; color: var(--text3); display: block; }
+  .type-btn.active .tdesc { color: var(--blue-text); opacity: .75; }
+
+  .two-col { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 14px; align-items: start; }
+
+  .commit-header { display: grid; grid-template-columns: 1fr 110px 105px 32px; gap: 6px; margin-bottom: 6px; padding: 0 2px; }
+  .commit-header span { font-size: 11px; color: var(--text3); font-weight: 600; }
+  .commit-row { display: grid; grid-template-columns: 1fr 110px 105px 32px; gap: 6px; align-items: center; margin-bottom: 7px; }
+  .commit-row:last-child { margin-bottom: 0; }
+  .btn-rm { width: 32px; height: 34px; border: 0.5px solid var(--border2); border-radius: var(--radius); background: var(--bg2); cursor: pointer; color: var(--text3); display: flex; align-items: center; justify-content: center; transition: background .12s, color .12s; flex-shrink: 0; }
+  .btn-rm:hover { background: var(--red-bg); color: var(--red-text); border-color: var(--red-border); }
+  .btn-add { background: transparent; border: 0.5px dashed var(--border2); border-radius: var(--radius); padding: 8px; font-size: 12px; color: var(--text2); cursor: pointer; font-family: inherit; width: 100%; margin-top: 10px; display: flex; align-items: center; gap: 5px; justify-content: center; transition: background .12s; }
+  .btn-add:hover { background: var(--bg2); }
+  .commit-total-row { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 0.5px solid var(--border); }
+  .commit-total-row span { font-size: 12px; color: var(--text2); }
+  .commit-total-val { font-family: 'Courier New', monospace; font-size: 15px; font-weight: 600; color: var(--text); }
+
+  .btn-analyze { width: 100%; height: 40px; border-radius: var(--radius); border: 0.5px solid var(--blue-border); background: var(--blue-bg); color: var(--blue-text); font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; font-family: inherit; transition: opacity .15s; }
+  .btn-analyze:hover:not(:disabled) { opacity: .84; }
+  .btn-analyze:disabled { opacity: .45; cursor: not-allowed; }
+
+  .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .metric-box { background: var(--bg2); border-radius: var(--radius); padding: 12px 14px; }
+  .metric-box .ml { font-size: 11px; color: var(--text2); margin-bottom: 4px; }
+  .metric-box .mv { font-family: 'Courier New', monospace; font-size: 21px; font-weight: 600; }
+
+  .cap-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .cap-table td { padding: 7px 0; border-top: 0.5px solid var(--border); }
+  .cap-table tr:first-child td { border-top: none; }
+  .td-label { color: var(--text2); padding-right: 8px; }
+  .td-val { text-align: right; font-family: 'Courier New', monospace; white-space: nowrap; }
+
+  .dti-wrap { margin-top: 12px; }
+  .dti-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+  .dti-header span { font-size: 11px; color: var(--text2); }
+  .dti-track { height: 7px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .dti-fill { height: 100%; border-radius: 4px; }
+  .dti-ticks { display: flex; justify-content: space-between; margin-top: 3px; }
+  .dti-ticks span { font-size: 10px; color: var(--text3); }
+
+  .dict-card { border-radius: var(--radius-lg); padding: 16px 18px; }
+  .dict-main { display: flex; align-items: flex-start; gap: 10px; }
+  .dict-title { font-size: 16px; font-weight: 600; }
+  .dict-sub { font-size: 12px; margin-top: 4px; opacity: .8; }
+  .ai-body { font-size: 13px; line-height: 1.65; white-space: pre-wrap; margin-top: 12px; opacity: .87; }
+  .ai-loading { display: flex; align-items: center; gap: 7px; margin-top: 12px; font-size: 13px; opacity: .7; }
+
+  .btn-save { width: 100%; height: 36px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: var(--bg2); color: var(--text); font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-family: inherit; transition: background .12s; }
+  .btn-save:hover:not(:disabled) { background: var(--bg3); }
+  .btn-save:disabled { opacity: .45; cursor: not-allowed; }
+  .save-msg { font-size: 12px; margin-top: 8px; display: flex; align-items: center; gap: 5px; }
+
+  .empty-state { text-align: center; padding: 4rem 2rem; border: 0.5px dashed var(--border2); border-radius: var(--radius-lg); }
+  .empty-state i { font-size: 40px; color: var(--text3); display: block; margin-bottom: 12px; }
+  .empty-state p { color: var(--text3); font-size: 13px; line-height: 1.7; }
+  .empty-state strong { color: var(--text2); font-weight: 500; }
+
+  .url-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 14px 18px; margin-bottom: 14px; }
+  .url-row { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+  .url-row input { flex: 1; font-family: 'Courier New', monospace; font-size: 12px; }
+  .url-ok { font-size: 11px; color: var(--green-text); white-space: nowrap; display: none; align-items: center; gap: 3px; }
+  .obs-card { margin-top: 10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Analizador de capacidad de crédito</h1>
+  <p class="subtitle">Filtro de candidatura · capacidad de pago · compromisos financieros</p>
+
+  <div class="types-grid" id="typesGrid"></div>
+
+  <div id="mainContent" style="display:none;">
+    <div class="two-col">
+      <div id="leftCol"></div>
+      <div id="rightCol">
+        <div class="empty-state">
+          <i class="ti ti-file-analytics"></i>
+          <p>Selecciona el tipo de persona, captura los datos<br>y presiona <strong>Analizar candidatura</strong></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+const TYPES=[
+  {id:"ASALARIADO",label:"Asalariado",code:"AS",desc:"Empleado ingreso fijo"},
+  {id:"PF",label:"Persona Física",code:"PF",desc:"Honorarios / variable"},
+  {id:"PFAE",label:"PFAE",code:"PF+",desc:"Actividad empresarial"},
+  {id:"PM",label:"Persona Moral",code:"PM",desc:"Empresa / SA de CV"},
+];
+const COMMIT_TYPES=["Tarjeta de crédito","Crédito personal","Crédito automotriz","Crédito hipotecario","Crédito de nómina","Arrendamiento","Otro compromiso"];
+const MESES=["Mes 1","Mes 2","Mes 3","Mes 4","Mes 5","Mes 6"];
+
+const SCRIPT_URL="https://script.google.com/macros/s/AKfycbwbb_oDKoCDynF9Ra5JMo84Niik1ydytsyLl5bvMtdgJJXbyp-_V7GZUjTfCAEDZUOm/exec";
+
+let currentType=null;
+let fData={nombre:"",mop:""};
+let ingresos=["","","","","",""];
+let commits=[{tipo:"",banco:"",monto:""}];
+let obs="";
+let otrosIngresos="";
+let lastR=null, lastAI="";
+
+const nv=v=>parseFloat(String(v).replace(/,/g,""))||0;
+const fmt=v=>isNaN(v)||v==null?"—":new Intl.NumberFormat("es-MX",{style:"currency",currency:"MXN",maximumFractionDigits:0}).format(v);
+const pct=v=>v!=null?(v*100).toFixed(1)+"%":"—";
+const totalCommits=()=>commits.reduce((s,c)=>s+nv(c.monto),0);
+
+function calcAnalysis(){
+  const avgBase=ingresos.reduce((s,v)=>s+nv(v),0)/6;
+  const avg=avgBase+nv(otrosIngresos);
+  const totalP=totalCommits();
+  const neta=Math.max(0,avg-totalP);
+  const dti=avg>0?totalP/avg:0;
+  const mop=parseInt(fData.mop)||1;
+  let candidato,dtype;
+  if(neta<=0||dti>=0.50){candidato="No candidato";dtype="danger";}
+  else if(dti>=0.35||mop>=4){candidato="Análisis adicional";dtype="warning";}
+  else{candidato="Candidato";dtype="success";}
+  const estimacion=neta>0?(neta/25000)*1000000:0;
+  return{avg,avgBase,neta,totalP,dti,mop,candidato,dtype,estimacion};
+}
+
+function incomeTitle(){
+  return{
+    ASALARIADO:"Ingresos netos — últimos 6 meses",
+    PF:"Ingresos mensuales — últimos 6 meses",
+    PFAE:"Depósitos en cuenta (estado de cuenta) — últimos 6 meses",
+    PM:"Ingresos / ventas mensuales — últimos 6 meses",
+  }[currentType];
+}
+function incomeHint(){
+  return{
+    ASALARIADO:"Ingreso neto después de IMSS e ISR",
+    PF:"Ingresos por honorarios, actividades profesionales o rentas",
+    PFAE:"Depósitos totales recibidos en el estado de cuenta del período",
+    PM:"Ingresos o ventas del mes correspondiente",
+  }[currentType];
+}
+
+function renderLeft(){
+  const incGrid=MESES.map((m,i)=>`
+    <div class="field" style="margin:0;">
+      <label>${m} ($)</label>
+      <input type="text" class="mono" value="${ingresos[i]}" inputmode="numeric"
+        oninput="ingresos[${i}]=this.value;refreshTotals()">
+    </div>`).join("");
+
+  const cHeader=`<div class="commit-header">
+    <span>Tipo de compromiso</span><span>Institución / banco</span>
+    <span style="text-align:right;">Mensualidad ($)</span><span></span>
+  </div>`;
+
+  const cRows=commits.map((c,i)=>`
+    <div class="commit-row">
+      <select onchange="commits[${i}].tipo=this.value">
+        <option value="">Tipo...</option>
+        ${COMMIT_TYPES.map(o=>`<option${c.tipo===o?" selected":""}>${o}</option>`).join("")}
+      </select>
+      <input type="text" placeholder="Ej: BBVA" value="${c.banco}"
+        oninput="commits[${i}].banco=this.value">
+      <input type="text" class="mono" placeholder="0" value="${c.monto}" inputmode="numeric"
+        style="text-align:right;" oninput="commits[${i}].monto=this.value;refreshTotals()">
+      <button class="btn-rm" onclick="removeCommit(${i})" title="Eliminar fila">
+        <i class="ti ti-x" style="font-size:13px;"></i>
+      </button>
+    </div>`).join("");
+
+  document.getElementById("leftCol").innerHTML=`
+  <div class="card">
+    <span class="sec-label">Datos del solicitante</span>
+    <div class="field">
+      <label>Nombre completo / Razón social</label>
+      <input type="text" value="${fData.nombre}" oninput="fData.nombre=this.value">
+    </div>
+    <div class="field" style="margin-bottom:0;">
+      <label>MOP máximo reportado en buró (1–9)</label>
+      <input type="text" class="mono" value="${fData.mop}" inputmode="numeric"
+        placeholder="1 = al corriente · 9 = pérdida" oninput="fData.mop=this.value">
+      <p class="hint">Dato extraído del reporte del buró de crédito del cliente</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <span class="sec-label">${incomeTitle()}</span>
+    <p class="hint" style="margin-bottom:12px;">${incomeHint()}</p>
+    <div class="income-grid">${incGrid}</div>
+    <div class="divider"></div>
+    <div class="field" style="margin-bottom:10px;">
+      <label>Otros ingresos — promedio mensual ($) <span style="font-weight:400;color:var(--text3);">opcional</span></label>
+      <input type="text" class="mono" value="${otrosIngresos}" inputmode="numeric"
+        placeholder="Ej: rentas, pensiones, remesas..." oninput="otrosIngresos=this.value;refreshTotals()">
+      <p class="hint">Se suma al promedio mensual de los 6 meses</p>
+    </div>
+    <div class="divider"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:12px;color:var(--text2);">Ingreso promedio total mensual</span>
+      <span id="avgDisp" style="font-family:'Courier New',monospace;font-size:14px;font-weight:600;">—</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <span class="sec-label">Compromisos y obligaciones financieras</span>
+    ${cHeader}
+    <div id="cRows">${cRows}</div>
+    ${commits.length<6?`<button class="btn-add" onclick="addCommit()">
+      <i class="ti ti-plus" style="font-size:13px;"></i> Agregar compromiso
+    </button>`:""}
+    <div class="commit-total-row">
+      <span>Total compromisos mensuales</span>
+      <span class="commit-total-val" id="totDisp">—</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <span class="sec-label">Observaciones</span>
+    <textarea placeholder="Notas adicionales, condiciones especiales, contexto del cliente..."
+      oninput="obs=this.value">${obs}</textarea>
+  </div>
+
+  <button class="btn-analyze" onclick="doAnalyze()">
+    <i class="ti ti-search" style="font-size:16px;"></i> Analizar candidatura
+  </button>`;
+
+  refreshTotals();
+}
+
+function refreshTotals(){
+  const avgBase=ingresos.reduce((s,v)=>s+nv(v),0)/6;
+  const avg=avgBase+nv(otrosIngresos);
+  const tot=totalCommits();
+  const avgEl=document.getElementById("avgDisp");
+  const totEl=document.getElementById("totDisp");
+  if(avgEl) avgEl.textContent=avg>0?fmt(avg):"—";
+  if(totEl) totEl.textContent=tot>0?fmt(tot):"—";
+}
+
+function addCommit(){
+  if(commits.length>=6) return;
+  commits.push({tipo:"",banco:"",monto:""});
+  renderLeft();
+}
+function removeCommit(i){
+  commits.splice(i,1);
+  if(commits.length===0) commits.push({tipo:"",banco:"",monto:""});
+  renderLeft();
+}
+
+function renderRight(r,aiText,aiLoading){
+  const dMap={
+    success:{bg:"var(--green-bg)",bdr:"var(--green-border)",clr:"var(--green-text)",icon:"ti-circle-check",sub:"Procede análisis con institución financiera"},
+    warning:{bg:"var(--amber-bg)",bdr:"var(--amber-border)",clr:"var(--amber-text)",icon:"ti-alert-triangle",sub:"Requiere evaluación adicional antes de referir"},
+    danger:{bg:"var(--red-bg)",bdr:"var(--red-border)",clr:"var(--red-text)",icon:"ti-x",sub:"No cumple criterios mínimos de candidatura"},
+  };
+  const dm=dMap[r.dtype];
+  const dtiColor=r.dti<0.30?"var(--good)":r.dti<0.40?"var(--ok)":"var(--bad)";
+  const dtiBar=r.dti<0.30?"#1D9E75":r.dti<0.40?"#BA7517":"#E24B4A";
+  const dtiW=Math.min(100,r.dti*100).toFixed(1);
+  const mopColor=r.mop<=2?"var(--good)":r.mop<=4?"var(--ok)":"var(--bad)";
+  const mopLabel=r.mop<=2?"Al corriente":r.mop<=4?"Atraso leve":"Atraso grave";
+
+  const commitRows=commits.filter(c=>nv(c.monto)>0).map(c=>`<tr>
+    <td class="td-label">
+      <i class="ti ti-credit-card" style="font-size:12px;margin-right:4px;vertical-align:-1px;opacity:.5;"></i>
+      ${c.tipo||"Compromiso"}${c.banco?" · "+c.banco:""}
+    </td>
+    <td class="td-val" style="color:var(--bad);">− ${fmt(nv(c.monto))}</td>
+  </tr>`).join("");
+
+  const otrosRow=nv(otrosIngresos)>0?`<tr>
+    <td class="td-label"><i class="ti ti-plus" style="font-size:12px;margin-right:4px;vertical-align:-1px;opacity:.5;"></i>Otros ingresos (mensual)</td>
+    <td class="td-val" style="color:var(--good);">+ ${fmt(nv(otrosIngresos))}</td>
+  </tr>`:"";
+
+  document.getElementById("rightCol").innerHTML=`
+  <div class="card">
+    <span class="sec-label">Resumen de capacidad de pago</span>
+    <div class="metrics-grid">
+      <div class="metric-box">
+        <div class="ml">Ingreso promedio mensual</div>
+        <div class="mv">${fmt(r.avg)}</div>
+      </div>
+      <div class="metric-box">
+        <div class="ml">Capacidad neta libre</div>
+        <div class="mv" style="color:var(--blue-text);">${fmt(r.neta)}</div>
+      </div>
+    </div>
+    <table class="cap-table"><tbody>
+      <tr>
+        <td class="td-label"><i class="ti ti-cash" style="font-size:12px;margin-right:4px;vertical-align:-1px;"></i>Promedio ingresos 6 meses</td>
+        <td class="td-val">${fmt(r.avgBase)}</td>
+      </tr>
+      ${otrosRow}
+      <tr>
+        <td class="td-label" style="font-weight:600;"><i class="ti ti-cash" style="font-size:12px;margin-right:4px;vertical-align:-1px;"></i>Ingreso total mensual</td>
+        <td class="td-val" style="font-weight:600;">${fmt(r.avg)}</td>
+      </tr>
+      ${commitRows||`<tr><td class="td-label" style="color:var(--text3);font-style:italic;">Sin compromisos registrados</td><td></td></tr>`}
+      <tr>
+        <td class="td-label" style="font-weight:600;color:var(--text);">
+          <i class="ti ti-check" style="font-size:12px;margin-right:4px;vertical-align:-1px;"></i>Capacidad neta disponible
+        </td>
+        <td class="td-val" style="font-weight:600;color:${r.neta>0?"var(--blue-text)":"var(--bad)"};">${fmt(r.neta)}</td>
+      </tr>
+    </tbody></table>
+    <div class="dti-wrap">
+      <div class="dti-header">
+        <span>Nivel de endeudamiento (DTI)</span>
+        <span style="font-family:'Courier New',monospace;font-size:13px;font-weight:600;color:${dtiColor};">${pct(r.dti)}</span>
+      </div>
+      <div class="dti-track"><div class="dti-fill" style="width:${dtiW}%;background:${dtiBar};"></div></div>
+      <div class="dti-ticks">
+        <span>0%</span><span style="color:#1D9E75;">30% óptimo</span><span>40%</span><span style="color:#E24B4A;">50% límite</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:10px;">
+    <span class="sec-label">Indicadores de riesgo</span>
+    <table class="cap-table"><tbody>
+      <tr>
+        <td class="td-label"><i class="ti ti-report" style="font-size:12px;margin-right:4px;vertical-align:-1px;"></i>MOP máximo en buró</td>
+        <td class="td-val" style="color:${mopColor};font-weight:600;">${r.mop} — ${mopLabel}</td>
+      </tr>
+      <tr>
+        <td class="td-label"><i class="ti ti-arrows-exchange" style="font-size:12px;margin-right:4px;vertical-align:-1px;"></i>Compromisos / ingreso (DTI)</td>
+        <td class="td-val" style="color:${dtiColor};">${pct(r.dti)}</td>
+      </tr>
+      <tr>
+        <td class="td-label"><i class="ti ti-wallet" style="font-size:12px;margin-right:4px;vertical-align:-1px;"></i>Capacidad neta libre</td>
+        <td class="td-val" style="color:${r.neta>0?"var(--good)":"var(--bad)"};">${fmt(r.neta)} / mes</td>
+      </tr>
+    </tbody></table>
+  </div>
+
+  <div style="background:var(--blue-bg);border:1px solid var(--blue-border);border-radius:var(--radius-lg);padding:16px 18px;margin-top:10px;">
+    <span class="sec-label" style="color:var(--blue-text);opacity:.7;margin-bottom:6px;">Estimación de crédito autorizado</span>
+    <div style="font-family:'Courier New',monospace;font-size:34px;font-weight:700;color:var(--blue-text);line-height:1;margin-bottom:6px;">${fmt(r.estimacion)}</div>
+    <div style="font-size:12px;color:var(--blue-text);opacity:.65;margin-bottom:10px;">Fórmula: ${fmt(r.neta)} ÷ $25,000 × $1,000,000</div>
+    <div style="background:rgba(255,255,255,0.55);border-radius:var(--radius);padding:9px 12px;font-size:12px;color:var(--blue-text);">
+      <i class="ti ti-info-circle" style="font-size:13px;margin-right:4px;vertical-align:-1px;"></i>
+      Monto referencial estimado con base en la capacidad neta de pago. Sujeto a criterios de la institución financiera.
+    </div>
+  </div>
+
+  <div class="dict-card" style="background:${dm.bg};border:0.5px solid ${dm.bdr};margin-top:10px;">
+    <div class="dict-main">
+      <i class="ti ${dm.icon}" style="font-size:22px;color:${dm.clr};flex-shrink:0;margin-top:1px;"></i>
+      <div>
+        <div class="dict-title" style="color:${dm.clr};">${r.candidato}</div>
+        <div class="dict-sub" style="color:${dm.clr};">${dm.sub}</div>
+      </div>
+    </div>
+    ${aiLoading?`<div class="ai-loading" style="color:${dm.clr};"><i class="ti ti-loader-2" style="font-size:15px;"></i>Generando análisis con IA...</div>`:""}
+    ${aiText?`<div class="ai-body" style="color:${dm.clr};">${aiText}</div>`:""}
+  </div>
+
+  ${obs?`<div class="card obs-card">
+    <span class="sec-label">Observaciones</span>
+    <p style="font-size:13px;color:var(--text2);line-height:1.65;">${obs}</p>
+  </div>`:""}
+
+  <div class="card" style="margin-top:10px;">
+    <span class="sec-label">Guardar en Google Sheets</span>
+    <button class="btn-save" onclick="doSave()" id="saveBtn">
+      <i class="ti ti-table-export" style="font-size:15px;"></i> Guardar resultado en Sheets
+    </button>
+    <div id="saveMsg"></div>
+  </div>`;
+}
+
+function pickType(id){
+  currentType=id;
+  fData={nombre:"",mop:""};
+  ingresos=["","","","","",""];
+  commits=[{tipo:"",banco:"",monto:""}];
+  obs=""; otrosIngresos=""; lastR=null; lastAI="";
+  document.getElementById("mainContent").style.display="block";
+  document.querySelectorAll(".type-btn").forEach(b=>b.classList.toggle("active",b.dataset.id===id));
+  renderLeft();
+  document.getElementById("rightCol").innerHTML=`<div class="empty-state">
+    <i class="ti ti-file-analytics"></i>
+    <p>Ingresa los datos del solicitante<br>y presiona <strong>Analizar candidatura</strong></p>
+  </div>`;
+}
+
+async function doAnalyze(){
+  const r=calcAnalysis();
+  lastR=r;
+  renderRight(r,"",true);
+
+  const tl={ASALARIADO:"Asalariado",PF:"Persona Física",PFAE:"PFAE",PM:"Persona Moral"}[currentType];
+  const cList=commits.filter(c=>nv(c.monto)>0).map(c=>`- ${c.tipo||"Compromiso"}${c.banco?" ("+c.banco+")":""}: ${fmt(nv(c.monto))}/mes`).join("\n")||"Sin compromisos registrados";
+  const prompt=`Eres un consultor de crédito en México. Somos una empresa pre-calificadora, NO somos el banco. Evalúa si el cliente es candidato para ser referido a una institución financiera. Responde en 3 párrafos concisos en español.\n\nTipo de persona: ${tl}\nNombre: ${fData.nombre||"N/A"}\nPromedio ingresos 6 meses: ${fmt(r.avgBase)}\nOtros ingresos mensuales: ${nv(otrosIngresos)>0?fmt(nv(otrosIngresos)):"No registrados"}\nIngreso total mensual: ${fmt(r.avg)}\nCompromisos actuales:\n${cList}\nTotal compromisos: ${fmt(r.totalP)}/mes\nCapacidad neta disponible (100% ingreso − compromisos): ${fmt(r.neta)}/mes\nEstimación de crédito autorizado: ${fmt(r.estimacion)}\nDTI: ${pct(r.dti)}\nMOP máximo en buró: ${r.mop}\nDictamen: ${r.candidato}\n${obs?"Observaciones: "+obs:""}\n\n1) Evaluación general del perfil y viabilidad 2) Alertas o factores de riesgo clave 3) Recomendación concreta para el equipo comercial, mencionando la estimación de crédito. Sé directo y profesional.`;
+
+  try{
+    if(!SCRIPT_URL){ lastAI="URL del Apps Script no configurada."; renderRight(r,lastAI,false); return; }
+    const res=await fetch(SCRIPT_URL,{method:"POST",body:JSON.stringify({prompt})});
+    const js=await res.json();
+    lastAI=js.texto||js.error||"Sin respuesta.";
+  }catch{ lastAI="Error al conectar con el Apps Script. Verifica que la URL sea correcta y que el script esté publicado."; }
+  renderRight(r,lastAI,false);
+}
+
+async function doSave(){
+  const url=SCRIPT_URL;
+  const msg=id=>document.getElementById(id);
+  if(!url){msg("saveMsg").innerHTML=`<span class="save-msg" style="color:var(--amber-text);"><i class="ti ti-alert-triangle" style="font-size:12px;"></i> Pega primero la URL de tu Apps Script.</span>`;return;}
+  if(!lastR){msg("saveMsg").innerHTML=`<span class="save-msg" style="color:var(--amber-text);"><i class="ti ti-alert-triangle" style="font-size:12px;"></i> Realiza primero un análisis.</span>`;return;}
+  const btn=document.getElementById("saveBtn");
+  btn.disabled=true;
+  btn.innerHTML=`<i class="ti ti-loader-2" style="font-size:14px;"></i> Guardando...`;
+  const tl={ASALARIADO:"Asalariado",PF:"Persona Física",PFAE:"PFAE",PM:"Persona Moral"}[currentType];
+  const payload={
+    nombre:fData.nombre||"",tipo:tl,mop:fData.mop||"",
+    i1:nv(ingresos[0]),i2:nv(ingresos[1]),i3:nv(ingresos[2]),
+    i4:nv(ingresos[3]),i5:nv(ingresos[4]),i6:nv(ingresos[5]),
+    otrosIngresos:nv(otrosIngresos),
+    promedio:lastR.avg,
+    totalCompromisos:lastR.totalP,capacidadNeta:lastR.neta,
+    dti:pct(lastR.dti),dictamen:lastR.candidato,estimacion:lastR.estimacion,
+    compromisos:commits.filter(c=>nv(c.monto)>0).map(c=>`${c.tipo||""}${c.banco?" ("+c.banco+")":""}: $${nv(c.monto)}`).join(" | "),
+    observaciones:obs,analisisIA:lastAI
+  };
+  try{
+    await fetch(url,{method:"POST",mode:"no-cors",body:JSON.stringify(payload)});
+    document.getElementById("saveMsg").innerHTML=`<span class="save-msg" style="color:var(--green-text);"><i class="ti ti-circle-check" style="font-size:12px;"></i> Enviado correctamente a tu hoja de cálculo.</span>`;
+  }catch{
+    document.getElementById("saveMsg").innerHTML=`<span class="save-msg" style="color:var(--red-text);"><i class="ti ti-alert-circle" style="font-size:12px;"></i> Error de conexión. Verifica la URL del script.</span>`;
+  }
+  btn.disabled=false;
+  btn.innerHTML=`<i class="ti ti-table-export" style="font-size:15px;"></i> Guardar resultado en Sheets`;
+}
+
+// Init type buttons
+document.getElementById("typesGrid").innerHTML=TYPES.map(t=>`
+  <button class="type-btn" data-id="${t.id}" onclick="pickType('${t.id}')">
+    <div class="tbadge">${t.code}</div>
+    <span class="tname">${t.label}</span>
+    <span class="tdesc">${t.desc}</span>
+  </button>`).join("");
+
+// URL configurada como constante — sin campo visible
+</script>
+</body>
+</html>
